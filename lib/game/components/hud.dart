@@ -1,9 +1,7 @@
-import 'dart:ui' as ui;
-
 import 'package:flame/components.dart';
-import 'package:flame/text.dart';
+import 'package:flame/game.dart';
 
-class Hud extends PositionComponent {
+class Hud extends PositionComponent with HasGameReference<FlameGame> {
   Hud({
     required double Function() scoreProvider,
     required double Function() capturedProvider,
@@ -27,30 +25,15 @@ class Hud extends PositionComponent {
 
     _text = TextComponent(
       text: '',
-      textRenderer: TextPaint(
-        style: const ui.TextStyle(
-          color: ui.Color(0xFFE8FCFF),
-          fontSize: 18,
-          fontFeatures: <ui.FontFeature>[ui.FontFeature.tabularFigures()],
-        ),
-      ),
+      textRenderer: TextPaint(),
     );
     add(_text);
 
     _status = TextComponent(
       text: '',
       anchor: Anchor.topCenter,
-      position: Vector2(gameRef.size.x / 2, 18),
-      textRenderer: TextPaint(
-        style: const ui.TextStyle(
-          color: ui.Color(0xFFFFFFFF),
-          fontSize: 22,
-          fontWeight: ui.FontWeight.w600,
-          shadows: <ui.Shadow>[
-            ui.Shadow(color: ui.Color(0xAA2EF2FF), blurRadius: 18),
-          ],
-        ),
-      ),
+      position: Vector2(game.size.x / 2, 18),
+      textRenderer: TextPaint(),
     );
     add(_status);
   }

@@ -113,7 +113,7 @@ class _EndRunOverlayState extends State<_EndRunOverlay> {
               decoration: BoxDecoration(
                 color: const Color(0xCC0B0B12),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF2EF2FF).withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFF2EF2FF).withValues(alpha: 0.4)),
                 boxShadow: const <BoxShadow>[
                   BoxShadow(color: Color(0x552EF2FF), blurRadius: 20),
                 ],

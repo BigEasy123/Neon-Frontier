@@ -2,11 +2,10 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
 
 import '../playfield/playfield.dart';
 
-class EnergyOrbEnemy extends PositionComponent with HasGameRef {
+class EnergyOrbEnemy extends PositionComponent with HasGameReference {
   EnergyOrbEnemy({
     required this.playfield,
     required Vector2 position,
@@ -89,14 +88,14 @@ class EnergyOrbEnemy extends PositionComponent with HasGameRef {
     final base = _color();
 
     final glow = ui.Paint()
-      ..color = base.withOpacity(0.55)
+      ..color = base.withValues(alpha: 0.55)
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 18);
     canvas.drawCircle(c, radius * 1.6, glow);
 
-    final inner = ui.Paint()..color = base.withOpacity(0.95);
+    final inner = ui.Paint()..color = base.withValues(alpha: 0.95);
     canvas.drawCircle(c, radius, inner);
 
-    final spec = ui.Paint()..color = const ui.Color(0xFFFFFFFF).withOpacity(0.35);
+    final spec = ui.Paint()..color = const ui.Color(0xFFFFFFFF).withValues(alpha: 0.35);
     canvas.drawCircle(ui.Offset(radius * 0.7, radius * 0.7), radius * 0.35, spec);
 
     super.render(canvas);

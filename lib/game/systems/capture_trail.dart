@@ -1,7 +1,6 @@
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
 
 class CaptureTrail extends Component {
   final List<Vector2> _points = <Vector2>[];

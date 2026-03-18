@@ -2,9 +2,9 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
+import 'package:flame/game.dart';
 
-class LavaLampBackground extends PositionComponent with HasGameRef {
+class LavaLampBackground extends PositionComponent with HasGameReference<FlameGame> {
   LavaLampBackground({int blobCount = 7}) : _blobCount = blobCount;
 
   final int _blobCount;
@@ -14,7 +14,7 @@ class LavaLampBackground extends PositionComponent with HasGameRef {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    size = gameRef.size;
+    size = game.size;
     position = Vector2.zero();
     priority = -1000;
 
@@ -51,8 +51,8 @@ class LavaLampBackground extends PositionComponent with HasGameRef {
         ui.Offset(blob.position.x, blob.position.y),
         blob.radius,
         <ui.Color>[
-          blob.color.withOpacity(0.55),
-          blob.color.withOpacity(0.0),
+          blob.color.withValues(alpha: 0.55),
+          blob.color.withValues(alpha: 0.0),
         ],
         const <double>[0.0, 1.0],
       );

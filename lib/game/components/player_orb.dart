@@ -2,12 +2,11 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
 
 import '../playfield/playfield.dart';
 import '../systems/capture_system.dart';
 
-class PlayerOrb extends PositionComponent with HasGameRef {
+class PlayerOrb extends PositionComponent with HasGameReference {
   PlayerOrb({
     required Vector2 position,
     required double radius,
@@ -109,7 +108,7 @@ class PlayerOrb extends PositionComponent with HasGameRef {
     final rimPaint = ui.Paint()
       ..style = ui.PaintingStyle.stroke
       ..strokeWidth = 2
-      ..color = const ui.Color(0xFF8A7CFF).withOpacity(0.75);
+      ..color = const ui.Color(0xFF8A7CFF).withValues(alpha: 0.75);
 
     canvas.drawCircle(center, _radius * 1.35, glowPaint);
     canvas.drawCircle(center, _radius, innerPaint);

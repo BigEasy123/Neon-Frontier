@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
 
 import '../playfield/territory_grid.dart';
 
@@ -47,9 +46,9 @@ class CaptureParticles extends Component {
     for (final p in _particles) {
       final t = 1 - (p.age / p.lifetime).clamp(0.0, 1.0);
       final glowPaint = ui.Paint()
-        ..color = p.color.withOpacity(0.45 * t)
+        ..color = p.color.withValues(alpha: 0.45 * t)
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 10);
-      final corePaint = ui.Paint()..color = p.color.withOpacity(0.85 * t);
+      final corePaint = ui.Paint()..color = p.color.withValues(alpha: 0.85 * t);
       final c = ui.Offset(p.position.x, p.position.y);
       canvas.drawCircle(c, p.radius * (1.5 * t), glowPaint);
       canvas.drawCircle(c, p.radius * t, corePaint);

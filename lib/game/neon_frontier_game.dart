@@ -1,4 +1,3 @@
-import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 
@@ -101,7 +100,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
   @override
   void onPanStart(DragStartInfo info) {
     if (session.gameOver || session.win) return;
-    _dragTarget = info.eventPosition.game;
+    _dragTarget = info.eventPosition.widget;
     player.setDragTarget(_dragTarget);
     super.onPanStart(info);
   }
@@ -109,7 +108,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
   @override
   void onPanUpdate(DragUpdateInfo info) {
     if (session.gameOver || session.win) return;
-    _dragTarget = info.eventPosition.game;
+    _dragTarget = info.eventPosition.widget;
     player.setDragTarget(_dragTarget);
     super.onPanUpdate(info);
   }
@@ -175,11 +174,12 @@ class NeonFrontierGame extends FlameGame with PanDetector {
   }
 
   void _spawnEnemies() {
+    final center = Vector2(playfield.bounds.center.dx, playfield.bounds.center.dy);
     enemies.addAll(
       <EnergyOrbEnemy>[
-        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(-140, -220)),
-        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(130, -160)),
-        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(30, 200)),
+        EnergyOrbEnemy(playfield: playfield, position: center + Vector2(-140, -220)),
+        EnergyOrbEnemy(playfield: playfield, position: center + Vector2(130, -160)),
+        EnergyOrbEnemy(playfield: playfield, position: center + Vector2(30, 200)),
       ],
     );
     for (final e in enemies) {
@@ -188,7 +188,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
   }
 
   void _resetEnemies() {
-    final center = playfield.bounds.center.toVector2();
+    final center = Vector2(playfield.bounds.center.dx, playfield.bounds.center.dy);
     final targets = <Vector2>[
       center + Vector2(-140, -220),
       center + Vector2(130, -160),

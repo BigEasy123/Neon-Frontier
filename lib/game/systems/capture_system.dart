@@ -1,5 +1,4 @@
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
 
 import '../components/territory_renderer.dart';
 import '../playfield/playfield.dart';
@@ -9,7 +8,7 @@ import 'capture_trail.dart';
 typedef CaptureLostCallback = void Function();
 typedef CaptureCompletedCallback = void Function(CaptureResult result);
 
-class CaptureSystem extends Component with HasGameRef {
+class CaptureSystem extends Component {
   CaptureSystem({
     required this.playfield,
     required this.territoryRenderer,

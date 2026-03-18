@@ -2,12 +2,12 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
+import 'package:flame/game.dart';
 
 import '../playfield/playfield.dart';
 import '../playfield/territory_grid.dart';
 
-class TerritoryRenderer extends Component with HasGameRef {
+class TerritoryRenderer extends Component with HasGameReference<FlameGame> {
   TerritoryRenderer({
     required this.playfield,
   });
@@ -25,7 +25,7 @@ class TerritoryRenderer extends Component with HasGameRef {
     if (cells.isEmpty) return;
     _pulses.add(
       _CapturePulse(
-        startedAt: gameRef.currentTime(),
+        startedAt: game.currentTime(),
         cells: cells,
         color: _randomLavaColor(),
       ),
@@ -60,12 +60,12 @@ class TerritoryRenderer extends Component with HasGameRef {
         if (!grid.isCaptured(c, r)) continue;
         final rect = grid.cellRect(c, r);
         final color = _cellColor(c, r);
-        basePaint.color = color.withOpacity(0.10);
+        basePaint.color = color.withValues(alpha: 0.10);
         canvas.drawRect(rect.inflate(cs * 0.22), basePaint);
       }
     }
 
-    final now = gameRef.currentTime();
+    final now = game.currentTime();
     _pulses.removeWhere((p) => now - p.startedAt > p.duration);
     for (final pulse in _pulses) {
       final t = ((now - pulse.startedAt) / pulse.duration).clamp(0.0, 1.0);
@@ -73,7 +73,7 @@ class TerritoryRenderer extends Component with HasGameRef {
       final paint = ui.Paint()
         ..blendMode = ui.BlendMode.plus
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 18)
-        ..color = pulse.color.withOpacity(0.45 * eased);
+        ..color = pulse.color.withValues(alpha: 0.45 * eased);
 
       for (final cell in pulse.cells) {
         final rect = grid.cellRect(cell.c, cell.r);
