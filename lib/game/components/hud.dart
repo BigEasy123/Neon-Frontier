@@ -7,17 +7,23 @@ class Hud extends PositionComponent with HasGameReference<FlameGame> {
     required double Function() capturedProvider,
     required double Function() targetProvider,
     required int Function() levelProvider,
+    required String Function() playerSkinProvider,
+    required String Function() effectsProvider,
     required String? Function() statusProvider,
   }) : _scoreProvider = scoreProvider,
        _capturedProvider = capturedProvider,
        _targetProvider = targetProvider,
        _levelProvider = levelProvider,
+       _playerSkinProvider = playerSkinProvider,
+       _effectsProvider = effectsProvider,
        _statusProvider = statusProvider;
 
   final double Function() _scoreProvider;
   final double Function() _capturedProvider;
   final double Function() _targetProvider;
   final int Function() _levelProvider;
+  final String Function() _playerSkinProvider;
+  final String Function() _effectsProvider;
   final String? Function() _statusProvider;
 
   late final TextComponent _text;
@@ -47,8 +53,10 @@ class Hud extends PositionComponent with HasGameReference<FlameGame> {
     final captured = _capturedProvider() * 100;
     final target = _targetProvider() * 100;
     final level = _levelProvider();
+    final skin = _playerSkinProvider();
+    final effects = _effectsProvider();
     _text.text =
-        'Level: $level\nScore: ${score.toStringAsFixed(0)}\nCaptured: ${captured.toStringAsFixed(1)}% / ${target.toStringAsFixed(0)}%';
+        'Level: $level\nScore: ${score.toStringAsFixed(0)}\nCaptured: ${captured.toStringAsFixed(1)}% / ${target.toStringAsFixed(0)}%\nShip: $skin\n$effects';
     _status.text = _statusProvider() ?? '';
     super.update(dt);
   }

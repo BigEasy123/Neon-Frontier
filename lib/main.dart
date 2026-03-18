@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import 'game/neon_frontier_game.dart';
 import 'game/services/ad_service.dart';
+import 'game/services/analytics_service.dart';
+import 'game/state/player_skin.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,7 @@ class NeonFrontierHome extends StatefulWidget {
 
 class _NeonFrontierHomeState extends State<NeonFrontierHome> {
   late final AdService _adService;
+  late final AnalyticsService _analyticsService;
   late final NeonFrontierGame _game;
   final ValueNotifier<int> _sessionVersion = ValueNotifier<int>(0);
 
@@ -49,8 +52,11 @@ class _NeonFrontierHomeState extends State<NeonFrontierHome> {
     super.initState();
     _adService = AdService();
     _adService.initialize();
+    _analyticsService = AnalyticsService();
+    _analyticsService.initialize();
     _game = NeonFrontierGame(
       adService: _adService,
+      analyticsService: _analyticsService,
       onSessionChanged: (_) {
         _sessionVersion.value++;
       },
@@ -137,10 +143,64 @@ class _ThemeTestPanel extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Text('Ship', style: Theme.of(context).textTheme.labelSmall),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                children: <Widget>[
+                  _SkinChip(
+                    label: 'Orb',
+                    selected: game.selectedSkin == PlayerSkin.orb,
+                    onTap: () => game.setPlayerSkin(PlayerSkin.orb),
+                  ),
+                  _SkinChip(
+                    label: 'Square',
+                    selected: game.selectedSkin == PlayerSkin.square,
+                    onTap: () => game.setPlayerSkin(PlayerSkin.square),
+                  ),
+                  _SkinChip(
+                    label: 'Triangle',
+                    selected: game.selectedSkin == PlayerSkin.triangle,
+                    onTap: () => game.setPlayerSkin(PlayerSkin.triangle),
+                  ),
+                ],
+              ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _SkinChip extends StatelessWidget {
+  const _SkinChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: selected ? const Color(0xFF2EF2FF).withValues(alpha: 0.25) : const Color(0x22171D2A),
+          border: Border.all(
+            color: selected ? const Color(0xFF2EF2FF) : const Color(0x664A5C7A),
+          ),
+        ),
+        child: Text(label),
+      ),
     );
   }
 }

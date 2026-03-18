@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 
 import '../playfield/playfield.dart';
+import '../state/player_skin.dart';
 import '../systems/capture_system.dart';
 
 class PlayerOrb extends PositionComponent with HasGameReference {
@@ -21,6 +22,10 @@ class PlayerOrb extends PositionComponent with HasGameReference {
   final Playfield playfield;
   final CaptureSystem captureSystem;
   final double _radius;
+  PlayerSkin skin = PlayerSkin.orb;
+  double speedMultiplier = 1.0;
+
+  double get radius => _radius;
 
   Vector2? _target;
   bool _capturing = false;
@@ -45,7 +50,7 @@ class PlayerOrb extends PositionComponent with HasGameReference {
 
       final dist = toDesired.length;
       if (dist > 0.0001) {
-        final desiredVel = toDesired.normalized() * _maxSpeed * _speedScale(dist);
+        final desiredVel = toDesired.normalized() * (_maxSpeed * speedMultiplier) * _speedScale(dist);
         final dv = desiredVel - _velocity;
         final maxDv = _accel * dt;
         if (dv.length > maxDv) {
@@ -162,9 +167,47 @@ class PlayerOrb extends PositionComponent with HasGameReference {
       ..strokeWidth = 2
       ..color = const ui.Color(0xFF8A7CFF).withValues(alpha: 0.75);
 
-    canvas.drawCircle(center, _radius * 1.35, glowPaint);
-    canvas.drawCircle(center, _radius, innerPaint);
-    canvas.drawCircle(center, _radius * 0.92, rimPaint);
+    switch (skin) {
+      case PlayerSkin.orb:
+        canvas.drawCircle(center, _radius * 1.35, glowPaint);
+        canvas.drawCircle(center, _radius, innerPaint);
+        canvas.drawCircle(center, _radius * 0.92, rimPaint);
+        break;
+      case PlayerSkin.square:
+        final rect = ui.Rect.fromCenter(
+          center: center,
+          width: _radius * 2,
+          height: _radius * 2,
+        );
+        canvas.drawRRect(
+          ui.RRect.fromRectAndRadius(rect.inflate(_radius * 0.35), ui.Radius.circular(8)),
+          glowPaint,
+        );
+        canvas.drawRRect(
+          ui.RRect.fromRectAndRadius(rect, ui.Radius.circular(6)),
+          innerPaint,
+        );
+        canvas.drawRRect(
+          ui.RRect.fromRectAndRadius(rect.deflate(_radius * 0.1), ui.Radius.circular(5)),
+          rimPaint,
+        );
+        break;
+      case PlayerSkin.triangle:
+        final tri = ui.Path()
+          ..moveTo(center.dx, center.dy - _radius)
+          ..lineTo(center.dx + _radius * 0.92, center.dy + _radius * 0.85)
+          ..lineTo(center.dx - _radius * 0.92, center.dy + _radius * 0.85)
+          ..close();
+        final triGlow = ui.Path()
+          ..moveTo(center.dx, center.dy - _radius * 1.35)
+          ..lineTo(center.dx + _radius * 1.2, center.dy + _radius * 1.1)
+          ..lineTo(center.dx - _radius * 1.2, center.dy + _radius * 1.1)
+          ..close();
+        canvas.drawPath(triGlow, glowPaint);
+        canvas.drawPath(tri, innerPaint);
+        canvas.drawPath(tri, rimPaint);
+        break;
+    }
 
     super.render(canvas);
   }

@@ -18,6 +18,7 @@ class EnergyOrbEnemy extends PositionComponent with HasGameReference {
 
   final Playfield playfield;
   final double radius;
+  bool frozen = false;
 
   final math.Random _rng = math.Random();
   late Vector2 _velocity;
@@ -44,6 +45,10 @@ class EnergyOrbEnemy extends PositionComponent with HasGameReference {
   @override
   void update(double dt) {
     _phase += dt;
+    if (frozen) {
+      super.update(dt);
+      return;
+    }
 
     final swirl = Vector2(math.cos(_phase * 0.8), math.sin(_phase * 0.9));
     _velocity += swirl * (dt * 26);
