@@ -4,12 +4,20 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 
-class LavaLampBackground extends PositionComponent with HasGameReference<FlameGame> {
-  LavaLampBackground({int blobCount = 7}) : _blobCount = blobCount;
+import '../state/level_theme.dart';
 
+class LavaLampBackground extends PositionComponent with HasGameReference<FlameGame> {
+  LavaLampBackground({
+    required LevelTheme Function() themeProvider,
+    int blobCount = 7,
+  }) : _themeProvider = themeProvider,
+       _blobCount = blobCount;
+
+  final LevelTheme Function() _themeProvider;
   final int _blobCount;
-  final math.Random _rng = math.Random(3);
+  math.Random _rng = math.Random(3);
   final List<_Blob> _blobs = <_Blob>[];
+  int _activeThemeSeed = -1;
 
   @override
   Future<void> onLoad() async {
@@ -17,11 +25,7 @@ class LavaLampBackground extends PositionComponent with HasGameReference<FlameGa
     size = game.size;
     position = Vector2.zero();
     priority = -1000;
-
-    _blobs.clear();
-    for (var i = 0; i < _blobCount; i++) {
-      _blobs.add(_Blob.random(_rng, size));
-    }
+    _reseedForTheme(_themeProvider());
   }
 
   @override
@@ -35,23 +39,30 @@ class LavaLampBackground extends PositionComponent with HasGameReference<FlameGa
 
   @override
   void update(double dt) {
+    final theme = _themeProvider();
+    if (_activeThemeSeed != theme.seed) {
+      _reseedForTheme(theme);
+    }
     for (final blob in _blobs) {
-      blob.update(dt, size);
+      blob.update(dt, size, theme);
     }
     super.update(dt);
   }
 
   @override
   void render(ui.Canvas canvas) {
-    final bgPaint = ui.Paint()..color = const ui.Color(0xFF06060A);
+    final theme = _themeProvider();
+    final bgPaint = ui.Paint()..color = theme.background;
     canvas.drawRect(size.toRect(), bgPaint);
+
+    final flash = ((math.sin(game.currentTime() * 0.65) * 0.5) + 0.5) * theme.flashAmount;
 
     for (final blob in _blobs) {
       final gradient = ui.Gradient.radial(
         ui.Offset(blob.position.x, blob.position.y),
         blob.radius,
         <ui.Color>[
-          blob.color.withValues(alpha: 0.55),
+          blob.color.withValues(alpha: (theme.backgroundGlowAlpha + flash).clamp(0.0, 0.95)),
           blob.color.withValues(alpha: 0.0),
         ],
         const <double>[0.0, 1.0],
@@ -63,6 +74,15 @@ class LavaLampBackground extends PositionComponent with HasGameReference<FlameGa
         ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 24);
 
       canvas.drawCircle(ui.Offset(blob.position.x, blob.position.y), blob.radius, paint);
+    }
+  }
+
+  void _reseedForTheme(LevelTheme theme) {
+    _activeThemeSeed = theme.seed;
+    _rng = math.Random(theme.seed);
+    _blobs.clear();
+    for (var i = 0; i < _blobCount; i++) {
+      _blobs.add(_Blob.random(_rng, size, theme));
     }
   }
 }
@@ -84,42 +104,34 @@ class _Blob {
   double phase;
   double wobble;
 
-  static _Blob random(math.Random rng, Vector2 size) {
-    final colors = <ui.Color>[
-      const ui.Color(0xFF8A7CFF),
-      const ui.Color(0xFF2EF2FF),
-      const ui.Color(0xFFFF4FD8),
-      const ui.Color(0xFFFFB84D),
-      const ui.Color(0xFF4BFF88),
-    ];
-
+  static _Blob random(math.Random rng, Vector2 size, LevelTheme theme) {
     final pos = Vector2(
       rng.nextDouble() * size.x,
       rng.nextDouble() * size.y,
     );
 
-    final speed = 8 + rng.nextDouble() * 18;
+    final speed = (8 + rng.nextDouble() * 18) * theme.blobSpeedScale;
     final angle = rng.nextDouble() * math.pi * 2;
     final vel = Vector2(math.cos(angle), math.sin(angle))..scale(speed);
 
     return _Blob(
       position: pos,
-      radius: 180 + rng.nextDouble() * 220,
+      radius: 140 + rng.nextDouble() * 260,
       velocity: vel,
-      color: colors[rng.nextInt(colors.length)],
+      color: theme.palette[rng.nextInt(theme.palette.length)],
       phase: rng.nextDouble() * math.pi * 2,
-      wobble: 0.35 + rng.nextDouble() * 0.55,
+      wobble: (0.35 + rng.nextDouble() * 0.55) * theme.blobWobbleScale,
     );
   }
 
-  void update(double dt, Vector2 bounds) {
+  void update(double dt, Vector2 bounds, LevelTheme theme) {
     phase += dt * 0.6;
     final wobbleScale = 1 + math.sin(phase) * wobble * 0.08;
     radius = radius.clamp(120, 460) * wobbleScale;
 
     position += velocity * dt;
 
-    velocity.rotate((math.sin(phase * 0.7) * 0.07) * dt);
+    velocity.rotate((math.sin(phase * 0.7) * (0.07 + theme.flashAmount * 0.02)) * dt);
 
     wrapInto(bounds);
   }

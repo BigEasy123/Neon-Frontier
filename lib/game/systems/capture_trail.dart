@@ -50,15 +50,15 @@ class CaptureTrail extends Component {
 
     final glowPaint = ui.Paint()
       ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = 10
+      ..strokeWidth = 7
       ..strokeCap = ui.StrokeCap.round
       ..strokeJoin = ui.StrokeJoin.round
-      ..color = const ui.Color(0x882EF2FF)
-      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 12);
+      ..color = const ui.Color(0xB32EF2FF)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
 
     final corePaint = ui.Paint()
       ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = 4
+      ..strokeWidth = 3.5
       ..strokeCap = ui.StrokeCap.round
       ..strokeJoin = ui.StrokeJoin.round
       ..color = const ui.Color(0xFFE8FCFF);

@@ -5,13 +5,19 @@ class Hud extends PositionComponent with HasGameReference<FlameGame> {
   Hud({
     required double Function() scoreProvider,
     required double Function() capturedProvider,
+    required double Function() targetProvider,
+    required int Function() levelProvider,
     required String? Function() statusProvider,
-  })  : _scoreProvider = scoreProvider,
-        _capturedProvider = capturedProvider,
-        _statusProvider = statusProvider;
+  }) : _scoreProvider = scoreProvider,
+       _capturedProvider = capturedProvider,
+       _targetProvider = targetProvider,
+       _levelProvider = levelProvider,
+       _statusProvider = statusProvider;
 
   final double Function() _scoreProvider;
   final double Function() _capturedProvider;
+  final double Function() _targetProvider;
+  final int Function() _levelProvider;
   final String? Function() _statusProvider;
 
   late final TextComponent _text;
@@ -23,10 +29,7 @@ class Hud extends PositionComponent with HasGameReference<FlameGame> {
     position = Vector2(16, 16);
     anchor = Anchor.topLeft;
 
-    _text = TextComponent(
-      text: '',
-      textRenderer: TextPaint(),
-    );
+    _text = TextComponent(text: '', textRenderer: TextPaint());
     add(_text);
 
     _status = TextComponent(
@@ -42,7 +45,10 @@ class Hud extends PositionComponent with HasGameReference<FlameGame> {
   void update(double dt) {
     final score = _scoreProvider();
     final captured = _capturedProvider() * 100;
-    _text.text = 'Score: ${score.toStringAsFixed(0)}\nCaptured: ${captured.toStringAsFixed(1)}%';
+    final target = _targetProvider() * 100;
+    final level = _levelProvider();
+    _text.text =
+        'Level: $level\nScore: ${score.toStringAsFixed(0)}\nCaptured: ${captured.toStringAsFixed(1)}% / ${target.toStringAsFixed(0)}%';
     _status.text = _statusProvider() ?? '';
     super.update(dt);
   }

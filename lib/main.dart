@@ -68,15 +68,79 @@ class _NeonFrontierHomeState extends State<NeonFrontierHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: GameWidget<NeonFrontierGame>(
-          game: _game,
-          overlayBuilderMap: <String, Widget Function(BuildContext, NeonFrontierGame)>{
-            NeonFrontierGame.endOverlayId: (context, game) {
-              return _EndRunOverlay(game: game, sessionVersion: _sessionVersion);
-            },
-          },
+        child: Stack(
+          children: <Widget>[
+            GameWidget<NeonFrontierGame>(
+              game: _game,
+              overlayBuilderMap: <String, Widget Function(BuildContext, NeonFrontierGame)>{
+                NeonFrontierGame.endOverlayId: (context, game) {
+                  return _EndRunOverlay(game: game, sessionVersion: _sessionVersion);
+                },
+              },
+            ),
+            Positioned(
+              right: 10,
+              top: 10,
+              child: _ThemeTestPanel(game: _game, sessionVersion: _sessionVersion),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+class _ThemeTestPanel extends StatelessWidget {
+  const _ThemeTestPanel({
+    required this.game,
+    required this.sessionVersion,
+  });
+
+  final NeonFrontierGame game;
+  final ValueNotifier<int> sessionVersion;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: sessionVersion,
+      builder: (context, _, __) {
+        if (!game.isLoaded) {
+          return const SizedBox.shrink();
+        }
+        final session = game.session;
+        final theme = game.currentTheme;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xAA0B0B12),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF2EF2FF).withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Text('Theme Test', style: Theme.of(context).textTheme.labelLarge),
+              Text('L${session.level}: ${theme.name}', style: Theme.of(context).textTheme.labelSmall),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  OutlinedButton(
+                    onPressed: () => game.setLevelForTesting(session.level - 1),
+                    child: const Text('Theme -'),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () => game.setLevelForTesting(session.level + 1),
+                    child: const Text('Theme +'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -123,9 +187,24 @@ class _EndRunOverlayState extends State<_EndRunOverlay> {
                 children: <Widget>[
                   Text(title, style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 10),
+                  Text('Level: ${session.level}'),
                   Text('Score: ${session.score.toStringAsFixed(0)}'),
-                  Text('Captured: ${(session.captured * 100).toStringAsFixed(1)}%'),
+                  Text(
+                    'Captured: ${(session.captured * 100).toStringAsFixed(1)}% / ${(session.targetCapturePercent * 100).toStringAsFixed(0)}%',
+                  ),
                   const SizedBox(height: 16),
+                  if (session.win)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _busy
+                            ? null
+                            : () {
+                                widget.game.startNextLevel();
+                              },
+                        child: const Text('Next Level'),
+                      ),
+                    ),
                   if (session.canContinue)
                     SizedBox(
                       width: double.infinity,

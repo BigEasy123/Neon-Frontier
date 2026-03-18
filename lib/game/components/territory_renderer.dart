@@ -6,16 +6,18 @@ import 'package:flame/game.dart';
 
 import '../playfield/playfield.dart';
 import '../playfield/territory_grid.dart';
+import '../state/level_theme.dart';
 
 class TerritoryRenderer extends Component with HasGameReference<FlameGame> {
   TerritoryRenderer({
     required this.playfield,
-  });
+    required LevelTheme Function() themeProvider,
+  }) : _themeProvider = themeProvider;
 
   final Playfield playfield;
+  final LevelTheme Function() _themeProvider;
 
   final List<_CapturePulse> _pulses = <_CapturePulse>[];
-  final math.Random _rng = math.Random(7);
 
   void resetEffects() {
     _pulses.clear();
@@ -23,11 +25,13 @@ class TerritoryRenderer extends Component with HasGameReference<FlameGame> {
 
   void addCapturePulse(List<Cell> cells) {
     if (cells.isEmpty) return;
+    final theme = _themeProvider();
+    final rng = math.Random(theme.seed ^ cells.length);
     _pulses.add(
       _CapturePulse(
         startedAt: game.currentTime(),
         cells: cells,
-        color: _randomLavaColor(),
+        color: theme.palette[rng.nextInt(theme.palette.length)],
       ),
     );
     if (_pulses.length > 6) {
@@ -35,33 +39,32 @@ class TerritoryRenderer extends Component with HasGameReference<FlameGame> {
     }
   }
 
-  ui.Color _randomLavaColor() {
-    final colors = <ui.Color>[
-      const ui.Color(0xFF8A7CFF),
-      const ui.Color(0xFF2EF2FF),
-      const ui.Color(0xFFFF4FD8),
-      const ui.Color(0xFFFFB84D),
-      const ui.Color(0xFF4BFF88),
-    ];
-    return colors[_rng.nextInt(colors.length)];
-  }
-
   @override
   void render(ui.Canvas canvas) {
     final grid = playfield.territory;
+    final theme = _themeProvider();
     final cs = grid.cellSize;
 
     final basePaint = ui.Paint()
+      ..blendMode = ui.BlendMode.srcOver;
+    final edgePaint = ui.Paint()
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 0.85
+      ..color = theme.palette[0].withValues(alpha: 0.45);
+    final glowPaint = ui.Paint()
       ..blendMode = ui.BlendMode.plus
-      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 14);
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
 
     for (var r = 1; r < grid.rows - 1; r++) {
       for (var c = 1; c < grid.cols - 1; c++) {
         if (!grid.isCaptured(c, r)) continue;
         final rect = grid.cellRect(c, r);
-        final color = _cellColor(c, r);
-        basePaint.color = color.withValues(alpha: 0.10);
-        canvas.drawRect(rect.inflate(cs * 0.22), basePaint);
+        final color = _cellColor(c, r, theme);
+        basePaint.color = color.withValues(alpha: theme.territoryAlpha);
+        glowPaint.color = color.withValues(alpha: theme.territoryGlowAlpha);
+        canvas.drawRect(rect, basePaint);
+        canvas.drawRect(rect.inflate(cs * 0.04), glowPaint);
+        canvas.drawRect(rect.deflate(0.4), edgePaint);
       }
     }
 
@@ -72,30 +75,19 @@ class TerritoryRenderer extends Component with HasGameReference<FlameGame> {
       final eased = _easeOutCubic(t);
       final paint = ui.Paint()
         ..blendMode = ui.BlendMode.plus
-        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 18)
-        ..color = pulse.color.withValues(alpha: 0.45 * eased);
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 8)
+        ..color = pulse.color.withValues(alpha: (0.40 + theme.flashAmount * 0.7) * eased);
 
       for (final cell in pulse.cells) {
         final rect = grid.cellRect(cell.c, cell.r);
-        canvas.drawRect(rect.inflate(cs * (0.25 + 0.25 * eased)), paint);
+        canvas.drawRect(rect.inflate(cs * (0.08 + 0.15 * eased)), paint);
       }
     }
   }
 
-  ui.Color _cellColor(int c, int r) {
-    final seed = (c * 73856093) ^ (r * 19349663);
-    switch (seed % 5) {
-      case 0:
-        return const ui.Color(0xFF8A7CFF);
-      case 1:
-        return const ui.Color(0xFF2EF2FF);
-      case 2:
-        return const ui.Color(0xFFFF4FD8);
-      case 3:
-        return const ui.Color(0xFFFFB84D);
-      default:
-        return const ui.Color(0xFF4BFF88);
-    }
+  ui.Color _cellColor(int c, int r, LevelTheme theme) {
+    final seed = (c * 73856093) ^ (r * 19349663) ^ theme.seed;
+    return theme.palette[seed.abs() % theme.palette.length];
   }
 
   double _easeOutCubic(double t) => 1 - math.pow(1 - t, 3).toDouble();

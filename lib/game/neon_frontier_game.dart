@@ -11,6 +11,7 @@ import 'playfield/playfield.dart';
 import 'playfield/territory_grid.dart';
 import 'services/ad_service.dart';
 import 'state/game_session.dart';
+import 'state/level_theme.dart';
 import 'systems/capture_system.dart';
 
 class NeonFrontierGame extends FlameGame with PanDetector {
@@ -30,8 +31,12 @@ class NeonFrontierGame extends FlameGame with PanDetector {
   final GameSession session = GameSession();
   final AdService _adService;
   final void Function(GameSession session)? onSessionChanged;
+  late LevelTheme _theme;
 
   Vector2? _dragTarget;
+  bool _initialized = false;
+
+  LevelTheme get currentTheme => _theme;
 
   @override
   Future<void> onLoad() async {
@@ -42,8 +47,12 @@ class NeonFrontierGame extends FlameGame with PanDetector {
       safeBorderThickness: 18,
       cellSize: 18,
     )..rebuild(size);
+    _theme = LevelThemeGenerator.fromLevel(session.level);
 
-    territoryRenderer = TerritoryRenderer(playfield: playfield);
+    territoryRenderer = TerritoryRenderer(
+      playfield: playfield,
+      themeProvider: () => _theme,
+    );
     captureParticles = CaptureParticles();
 
     captureSystem = CaptureSystem(
@@ -60,7 +69,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
       captureSystem: captureSystem,
     );
 
-    add(LavaLampBackground());
+    add(LavaLampBackground(themeProvider: () => _theme));
     add(territoryRenderer);
     add(captureParticles);
     add(captureSystem);
@@ -72,6 +81,8 @@ class NeonFrontierGame extends FlameGame with PanDetector {
       Hud(
         scoreProvider: () => session.score,
         capturedProvider: () => session.captured,
+        targetProvider: () => session.targetCapturePercent,
+        levelProvider: () => session.level,
         statusProvider: () {
           if (session.win) return 'You win';
           if (session.gameOver) return 'Game Over';
@@ -79,12 +90,14 @@ class NeonFrontierGame extends FlameGame with PanDetector {
         },
       ),
     );
+    _initialized = true;
     _notifySessionChanged();
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
+    if (!_initialized) return;
     playfield.rebuild(size);
     if (!captureSystem.isCapturing) {
       player.position = playfield.nearestPointOnSafeEdge(player.position);
@@ -124,8 +137,9 @@ class NeonFrontierGame extends FlameGame with PanDetector {
     session.captured = result.capturedPercent;
     session.score += result.newlyCaptured.length.toDouble();
     captureParticles.spawnFromCapturedCells(playfield.territory, result.newlyCaptured);
-    if (session.captured >= 0.80) {
+    if (session.captured >= session.targetCapturePercent) {
       session.win = true;
+      session.score += 500;
       overlays.add(endOverlayId);
       pauseEngine();
     }
@@ -160,14 +174,26 @@ class NeonFrontierGame extends FlameGame with PanDetector {
 
   void restartRun() {
     session.reset();
-    playfield.rebuild(size);
-    playfield.notifyTerritoryChanged();
-    captureSystem.cancel();
-    territoryRenderer.resetEffects();
-    player.position = playfield.initialPlayerPosition();
-    _dragTarget = null;
-    player.setDragTarget(null);
-    _resetEnemies();
+    _theme = LevelThemeGenerator.fromLevel(session.level);
+    _resetLevelState();
+    overlays.remove(endOverlayId);
+    resumeEngine();
+    _notifySessionChanged();
+  }
+
+  void startNextLevel() {
+    session.advanceLevel();
+    _theme = LevelThemeGenerator.fromLevel(session.level);
+    _resetLevelState();
+    overlays.remove(endOverlayId);
+    resumeEngine();
+    _notifySessionChanged();
+  }
+
+  void setLevelForTesting(int level) {
+    session.configureForLevel(level);
+    _theme = LevelThemeGenerator.fromLevel(session.level);
+    _resetLevelState();
     overlays.remove(endOverlayId);
     resumeEngine();
     _notifySessionChanged();
@@ -201,5 +227,16 @@ class NeonFrontierGame extends FlameGame with PanDetector {
 
   void _notifySessionChanged() {
     onSessionChanged?.call(session);
+  }
+
+  void _resetLevelState() {
+    playfield.rebuild(size);
+    playfield.notifyTerritoryChanged();
+    captureSystem.cancel();
+    territoryRenderer.resetEffects();
+    player.position = playfield.initialPlayerPosition();
+    _dragTarget = null;
+    player.setDragTarget(null);
+    _resetEnemies();
   }
 }
