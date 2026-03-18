@@ -27,10 +27,19 @@ class EnergyOrbEnemy extends PositionComponent with HasGameRef {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    resetMotion();
+  }
+
+  void resetMotion() {
     final angle = _rng.nextDouble() * math.pi * 2;
     final speed = 90 + _rng.nextDouble() * 110;
     _velocity = Vector2(math.cos(angle), math.sin(angle))..scale(speed);
     _phase = _rng.nextDouble() * math.pi * 2;
+  }
+
+  void resetPosition(Vector2 to) {
+    position = to.clone();
+    resetMotion();
   }
 
   @override
@@ -98,4 +107,3 @@ class EnergyOrbEnemy extends PositionComponent with HasGameRef {
     return ui.Color.lerp(const ui.Color(0xFF2EF2FF), const ui.Color(0xFFFF4FD8), t)!;
   }
 }
-

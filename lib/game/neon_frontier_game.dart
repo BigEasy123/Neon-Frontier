@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 
+import 'components/capture_particles.dart';
 import 'components/energy_orb_enemy.dart';
 import 'components/hud.dart';
 import 'components/lava_lamp_background.dart';
@@ -9,18 +10,27 @@ import 'components/player_orb.dart';
 import 'components/territory_renderer.dart';
 import 'playfield/playfield.dart';
 import 'playfield/territory_grid.dart';
+import 'services/ad_service.dart';
 import 'state/game_session.dart';
 import 'systems/capture_system.dart';
 
 class NeonFrontierGame extends FlameGame with PanDetector {
-  NeonFrontierGame();
+  NeonFrontierGame({
+    required AdService adService,
+    this.onSessionChanged,
+  }) : _adService = adService;
+
+  static const String endOverlayId = 'end_overlay';
 
   late final Playfield playfield;
   late final TerritoryRenderer territoryRenderer;
+  late final CaptureParticles captureParticles;
   late final CaptureSystem captureSystem;
   late final PlayerOrb player;
   final List<EnergyOrbEnemy> enemies = <EnergyOrbEnemy>[];
   final GameSession session = GameSession();
+  final AdService _adService;
+  final void Function(GameSession session)? onSessionChanged;
 
   Vector2? _dragTarget;
 
@@ -35,6 +45,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
     )..rebuild(size);
 
     territoryRenderer = TerritoryRenderer(playfield: playfield);
+    captureParticles = CaptureParticles();
 
     captureSystem = CaptureSystem(
       playfield: playfield,
@@ -52,19 +63,11 @@ class NeonFrontierGame extends FlameGame with PanDetector {
 
     add(LavaLampBackground());
     add(territoryRenderer);
+    add(captureParticles);
     add(captureSystem);
     add(player);
 
-    enemies.addAll(
-      <EnergyOrbEnemy>[
-        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(-140, -220)),
-        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(130, -160)),
-        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(30, 200)),
-      ],
-    );
-    for (final e in enemies) {
-      add(e);
-    }
+    _spawnEnemies();
 
     add(
       Hud(
@@ -77,6 +80,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
         },
       ),
     );
+    _notifySessionChanged();
   }
 
   @override
@@ -96,6 +100,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
 
   @override
   void onPanStart(DragStartInfo info) {
+    if (session.gameOver || session.win) return;
     _dragTarget = info.eventPosition.game;
     player.setDragTarget(_dragTarget);
     super.onPanStart(info);
@@ -103,6 +108,7 @@ class NeonFrontierGame extends FlameGame with PanDetector {
 
   @override
   void onPanUpdate(DragUpdateInfo info) {
+    if (session.gameOver || session.win) return;
     _dragTarget = info.eventPosition.game;
     player.setDragTarget(_dragTarget);
     super.onPanUpdate(info);
@@ -118,14 +124,82 @@ class NeonFrontierGame extends FlameGame with PanDetector {
   void _onCaptureCompleted(CaptureResult result) {
     session.captured = result.capturedPercent;
     session.score += result.newlyCaptured.length.toDouble();
+    captureParticles.spawnFromCapturedCells(playfield.territory, result.newlyCaptured);
     if (session.captured >= 0.80) {
       session.win = true;
+      overlays.add(endOverlayId);
       pauseEngine();
     }
+    _notifySessionChanged();
   }
 
   void _lose() {
+    if (session.gameOver || session.win) return;
+    session.gameOversTotal += 1;
     session.gameOver = true;
+    overlays.add(endOverlayId);
     pauseEngine();
+    _adService.maybeShowInterstitialForGameOver(session.gameOversTotal);
+    _notifySessionChanged();
+  }
+
+  Future<bool> tryContinueWithRewardedAd() async {
+    if (!session.canContinue) return false;
+    final rewarded = await _adService.showRewardedToContinue();
+    if (!rewarded) return false;
+
+    captureSystem.cancel();
+    _dragTarget = null;
+    player.setDragTarget(null);
+    player.position = playfield.nearestPointOnSafeEdge(player.position);
+    session.markContinued();
+    overlays.remove(endOverlayId);
+    resumeEngine();
+    _notifySessionChanged();
+    return true;
+  }
+
+  void restartRun() {
+    session.reset();
+    playfield.rebuild(size);
+    playfield.notifyTerritoryChanged();
+    captureSystem.cancel();
+    territoryRenderer.resetEffects();
+    player.position = playfield.initialPlayerPosition();
+    _dragTarget = null;
+    player.setDragTarget(null);
+    _resetEnemies();
+    overlays.remove(endOverlayId);
+    resumeEngine();
+    _notifySessionChanged();
+  }
+
+  void _spawnEnemies() {
+    enemies.addAll(
+      <EnergyOrbEnemy>[
+        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(-140, -220)),
+        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(130, -160)),
+        EnergyOrbEnemy(playfield: playfield, position: playfield.bounds.center.toVector2() + Vector2(30, 200)),
+      ],
+    );
+    for (final e in enemies) {
+      add(e);
+    }
+  }
+
+  void _resetEnemies() {
+    final center = playfield.bounds.center.toVector2();
+    final targets = <Vector2>[
+      center + Vector2(-140, -220),
+      center + Vector2(130, -160),
+      center + Vector2(30, 200),
+    ];
+    for (var i = 0; i < enemies.length; i++) {
+      enemies[i].resetPosition(targets[i % targets.length]);
+    }
+  }
+
+  void _notifySessionChanged() {
+    onSessionChanged?.call(session);
   }
 }

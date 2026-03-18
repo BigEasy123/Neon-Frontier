@@ -17,6 +17,10 @@ class TerritoryRenderer extends Component with HasGameRef {
   final List<_CapturePulse> _pulses = <_CapturePulse>[];
   final math.Random _rng = math.Random(7);
 
+  void resetEffects() {
+    _pulses.clear();
+  }
+
   void addCapturePulse(List<Cell> cells) {
     if (cells.isEmpty) return;
     _pulses.add(
@@ -109,4 +113,3 @@ class _CapturePulse {
   final ui.Color color;
   final double duration = 0.65;
 }
-
